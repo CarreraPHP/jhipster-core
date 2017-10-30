@@ -298,8 +298,8 @@ entityBody
   / '' { return []; }
 
 fieldDeclList
-  = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList {
-    return addUniqueElements([{ name: f, type: t, validations: vl, javadoc: com || com2 }], fdl );
+  = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList {
+    return addUniqueElements([{ name: f, label: l ? l : f, type: t, validations: vl, javadoc: com || com2 }], fdl );
   }
   / '' { return []; }
 
@@ -613,6 +613,7 @@ INTEGER = negative:'-'?int:[0-9]+ { return parseInt(`${(negative ? negative : ''
 INJECTED_FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9()]* { return `${head}${tail.join('')}`; }
 ENTITY_NAME = head:[A-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
+FIELD_LABEL = '(' SPACE* head:[a-zA-Z0-9]tail:[A-z0-9 ?:]* SPACE* ')' { return `${head}${tail.join('')}`; }
 SPACE = ['\n'|'\t'|'\r'|' '|\u2028|\u2029]
 SPACE_WITHOUT_NEWLINE = ['\t'|' '|\u2028|\u2029]
 FORWARD_SLASH = [/]

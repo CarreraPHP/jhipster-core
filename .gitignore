@@ -8,3 +8,6 @@ jhipster-jdl.jh
 .sonar
 coverage/*
 sonar-project.properties
+test/test_files/*.png
+lib/dsl/*.png
+yarn-error.log
