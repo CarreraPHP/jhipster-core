@@ -336,10 +336,10 @@ validationList
 
 //hashmap in dto
 dtoHashSetDecl
-  = jd:comment? SPACE* HASHSET SPACE* 'in' SPACE* DTO SPACE* '{' bodies:hashSetBodies '}' SPACE*  {
+  = jd:comment? SPACE* HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' bodies:hashSetBodies '}' SPACE*  {
     return { map: addPropertyToInstances('javadoc', jd, bodies) };
   }
-  / HASHSET SPACE* 'in' SPACE* DTO SPACE* '{' SPACE* bodies:hashSetBodies SPACE* '}' { return { body: addPropertyToInstances('javadoc', '', bodies) }; }
+  / HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' SPACE* bodies:hashSetBodies SPACE* '}' { return { body: addPropertyToInstances('javadoc', '', bodies) }; }
 
 hashSetBodies
   = SPACE* hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
@@ -438,9 +438,10 @@ subNoFluentMethod
   / ALL { return ['*']; }
   / e:ENTITY_NAME { return [e]; }
 
-// DTO
+// NEWLINE* NO_CHARACTER_BEOFRE
+// DTO NO_CHARACTER_BEOFRE 
 dtoDecl
-  = NEWLINE* NO_CHARACTER_BEOFRE DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+  = DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
     parsed.dto[decl[decl.length - 1]] = parsed.dto[decl[decl.length - 1]] || { list: [], excluded: [] };
     addUniqueElements(parsed.dto[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
     if (ex) {
@@ -448,14 +449,14 @@ dtoDecl
     }
     return parsed.dto;
   }
-  / NO_CHARACTER_BEOFRE DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
-    parsed.dto[decl[decl.length - 1]] = parsed.dto[decl[decl.length - 1]] || { list: [], excluded: [] };
-    addUniqueElements(parsed.dto[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
-    if (ex) {
-    	addUniqueElements(parsed.dto[decl[decl.length - 1]].excluded, ex);
-    }
-    return parsed.dto;
-  }
+  // / DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+  //   parsed.dto[decl[decl.length - 1]] = parsed.dto[decl[decl.length - 1]] || { list: [], excluded: [] };
+  //   addUniqueElements(parsed.dto[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
+  //   if (ex) {
+  //   	addUniqueElements(parsed.dto[decl[decl.length - 1]].excluded, ex);
+  //   }
+  //   return parsed.dto;
+  // }
 
 // Pagination
 pagiDecl
@@ -663,6 +664,7 @@ FOR = 'for'
 WITH = 'with'
 EXCEPT = 'except'
 NO_FLUENT_METHOD = 'noFluentMethod'
+HASH_DTO = 'dto'
 DTO = 'dto'
 PAGINATE = 'paginate'
 SERVICE = 'service'
