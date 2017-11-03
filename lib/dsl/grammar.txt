@@ -44,10 +44,25 @@
     return applicationDecl;
   }
 
+  function addPropertyToInstances(propertyName, propertyValue, passedArray) {
+    if (!passedArray) {
+      return;
+    }
+    for (let i = 0; i < passedArray.length; i++) {
+      passedArray[i][propertyName] = propertyValue;
+    }
+    return passedArray;
+  }
+
   const parsed = {
     applications: [],
     constants: {},
     entities: [],
+    hashsets: [],
+    screens: {
+      entity: [],
+      transaction: []
+    },
     relationships: [],
     enums: [],
     dto: {},
@@ -79,6 +94,18 @@ prog
   }
   / SPACE* ed:entityDecl SPACE* p:prog {
     parsed.entities = addUniqueElements([ed], parsed.entities);
+    return parsed;
+  }
+  / SPACE* dhs:dtoHashSetDecl SPACE* p:prog {
+    parsed.hashsets = addUniqueElements(dhs.map, parsed.hashsets);
+    return parsed;
+  }
+  / SPACE* es:entityScreenDecl SPACE* p:prog {
+    parsed.screens.entity = addUniqueElements([es], parsed.screens.entity);
+    return parsed;
+  }
+  / SPACE* ts:transactionScreenDecl SPACE* p:prog {
+    parsed.screens.transaction = addUniqueElements([ts], parsed.screens.transaction);
     return parsed;
   }
   / SPACE* rd:relationDecl SPACE* p:prog {
@@ -307,6 +334,51 @@ validationList
   = v:validation SPACE_WITHOUT_NEWLINE* vl:validationList { return addUniqueElements([v], vl); }
   / '' { return []; }
 
+//hashmap in dto
+dtoHashSetDecl
+  = jd:comment? SPACE* HASHSET SPACE* 'in' SPACE* DTO SPACE* '{' bodies:hashSetBodies '}' SPACE*  {
+    return { map: addPropertyToInstances('javadoc', jd, bodies) };
+  }
+  / HASHSET SPACE* 'in' SPACE* DTO SPACE* '{' SPACE* bodies:hashSetBodies SPACE* '}' { return { body: addPropertyToInstances('javadoc', '', bodies) }; }
+
+hashSetBodies
+  = SPACE* hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
+  / hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
+  / hmb:hashSetBody { return [hmb]; }
+
+hashSetBody
+  = 'set' SPACE value:hashSetEntityValue SPACE 'in' SPACE e:ENTITY_NAME SPACE* {
+    return { target: value, entity: e };
+  }
+
+// SPACE key:hashSetAttribute SPACE 'as'
+// hashSetAttribute = e:HASH_FIELD_NAME { return e; }
+
+hashSetEntityValue = e:HASH_ENTITY_NAME t:HASH_SET_TYPE {
+    return { entity: e, isHashSet: t, isObject: !t};
+  }
+
+HASH_SET_TYPE = $array:'[]'?$object:'<>'? {
+  return $array ? true : false;
+}
+
+//screens
+entityScreenDecl
+  = jd:comment? SPACE* ENTITYSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? SPACE*  {
+    return { name: e, body: eb, javadoc: jd };
+  }
+  / ENTITYSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? { return { name: e, body: eb, javadoc: '' }; }
+
+transactionScreenDecl
+  = jd:comment? SPACE* TRNSACTIONSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? SPACE*  {
+    return { name: e, body: eb, javadoc: jd };
+  }
+  / TRNSACTIONSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? { return { name: e, body: eb, javadoc: '' }; }
+
+screenContentBody
+  = '{' SPACE* fdl:fieldDeclList SPACE* '}' { return fdl; }
+  / '' { return []; }
+  
 //Relationship
 relationDecl
   = RELATIONSHIP SPACE rt:relationshipType SPACE* '{' SPACE* bodies:relationshipBodies SPACE* '}' {
@@ -368,7 +440,15 @@ subNoFluentMethod
 
 // DTO
 dtoDecl
-  = DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+  = NEWLINE* NO_CHARACTER_BEOFRE DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+    parsed.dto[decl[decl.length - 1]] = parsed.dto[decl[decl.length - 1]] || { list: [], excluded: [] };
+    addUniqueElements(parsed.dto[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
+    if (ex) {
+    	addUniqueElements(parsed.dto[decl[decl.length - 1]].excluded, ex);
+    }
+    return parsed.dto;
+  }
+  / NO_CHARACTER_BEOFRE DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
     parsed.dto[decl[decl.length - 1]] = parsed.dto[decl[decl.length - 1]] || { list: [], excluded: [] };
     addUniqueElements(parsed.dto[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
     if (ex) {
@@ -613,7 +693,17 @@ INTEGER = negative:'-'?int:[0-9]+ { return parseInt(`${(negative ? negative : ''
 INJECTED_FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9()]* { return `${head}${tail.join('')}`; }
 ENTITY_NAME = head:[A-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
+HASH_FIELD_NAME = head:[A-z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
+HASH_ENTITY_NAME = head:[A-Z]tail:[A-Za-z0-9]+ { return `${head}${tail.join('')}`; }
 FIELD_LABEL = '(' SPACE* head:[a-zA-Z0-9]tail:[A-z0-9 ?:]* SPACE* ')' { return `${head}${tail.join('')}`; }
 SPACE = ['\n'|'\t'|'\r'|' '|\u2028|\u2029]
 SPACE_WITHOUT_NEWLINE = ['\t'|' '|\u2028|\u2029]
+NEWLINE = ['\n'|'\t'|'\r']
+NO_CHARACTER_BEOFRE = ![A-z0-9 ]*
 FORWARD_SLASH = [/]
+
+
+//Component Constants
+ENTITYSCREEN = 'entityscreen'
+TRNSACTIONSCREEN = 'transactionscreen'
+HASHSET = 'hashset'
