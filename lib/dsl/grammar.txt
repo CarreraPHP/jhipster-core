@@ -63,6 +63,8 @@
       entity: [],
       transaction: []
     },
+    templates: {},
+    combolist: {},
     relationships: [],
     enums: [],
     dto: {},
@@ -76,6 +78,8 @@
     angularSuffix: {},
     noFluentMethod: { list: [], excluded: [] }
   };
+
+  var indentStack = [], indent = "";
 }
 
 start = p:prog {
@@ -100,12 +104,12 @@ prog
     parsed.hashsets = addUniqueElements(dhs.map, parsed.hashsets);
     return parsed;
   }
-  / SPACE* es:entityScreenDecl SPACE* p:prog {
-    parsed.screens.entity = addUniqueElements([es], parsed.screens.entity);
+  / SPACE* templ:templateDecl SPACE* p:prog {
+    parsed.templates = templ;
     return parsed;
   }
-  / SPACE* ts:transactionScreenDecl SPACE* p:prog {
-    parsed.screens.transaction = addUniqueElements([ts], parsed.screens.transaction);
+  / SPACE* templ:comboListDecl SPACE* p:prog {
+    parsed.combolist = templ;
     return parsed;
   }
   / SPACE* rd:relationDecl SPACE* p:prog {
@@ -158,6 +162,15 @@ prog
     return parsed;
   }
   / '' { return parsed; }
+
+  // / SPACE* es:entityScreenDecl SPACE* p:prog {
+  //   parsed.screens.entity = addUniqueElements([es], parsed.screens.entity);
+  //   return parsed;
+  // }
+  // / SPACE* ts:transactionScreenDecl SPACE* p:prog {
+  //   parsed.screens.transaction = addUniqueElements([ts], parsed.screens.transaction);
+  //   return parsed;
+  // }
 
 // Application Declaration
 applicationDecl
@@ -325,7 +338,7 @@ entityBody
   / '' { return []; }
 
 fieldDeclList
-  = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList {
+  = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList SPACE* {
     return addUniqueElements([{ name: f, label: l ? l : f, type: t, validations: vl, javadoc: com || com2 }], fdl );
   }
   / '' { return []; }
@@ -362,22 +375,87 @@ HASH_SET_TYPE = $array:'[]'?$object:'<>'? {
   return $array ? true : false;
 }
 
-//screens
-entityScreenDecl
-  = jd:comment? SPACE* ENTITYSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? SPACE*  {
-    return { name: e, body: eb, javadoc: jd };
-  }
-  / ENTITYSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? { return { name: e, body: eb, javadoc: '' }; }
+//Template
+TEMPLATE = 'template'
+templateDecl
+  = jd:comment? SPACE* TEMPLATE SPACE* '{' templates:entityTemplateDecl '}' SPACE* { return templates; }
+  / TEMPLATE SPACE* '{' templates:entityTemplateDecl '}' SPACE* { return templates; }
 
-transactionScreenDecl
-  = jd:comment? SPACE* TRNSACTIONSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? SPACE*  {
-    return { name: e, body: eb, javadoc: jd };
+entityTemplateDecl
+  = SPACE* com:comment? SPACE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* t:TEMPLATE_NAME SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* etd:entityTemplateDecl {
+    etd[e] = { entity: e, template: t, javadoc: com || com2 }
+    return etd;
   }
-  / TRNSACTIONSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE* eb:screenContentBody? { return { name: e, body: eb, javadoc: '' }; }
+  / '' { return {}; }
 
-screenContentBody
-  = '{' SPACE* fdl:fieldDeclList SPACE* '}' { return fdl; }
+
+LIST_BEGIN = '['
+LIST_END = ']'
+LIST = 'list'
+COMBO = 'combo'
+// FOR = 'for'
+comboListDecl
+  = jd:comment? SPACE* LIST SPACE* FOR SPACE* COMBO SPACE* '{' combo:entityComboDecl '}' SPACE* { return combo; }
+  / TEMPLATE SPACE* '{' combo:entityComboDecl '}' SPACE* { return combo; }
+  
+entityComboDecl
+  = SPACE* e:ENTITY_NAME SPACE* LIST_BEGIN SPACE_WITHOUT_NEWLINE* k:FIELD_NAME? SPACE_WITHOUT_NEWLINE* '=>' SPACE_WITHOUT_NEWLINE* vl:listFieldDecl SPACE_WITHOUT_NEWLINE* LIST_END SPACE* ','? SPACE* ecd:entityComboDecl {
+    // console.log("value fields in list", k, vl, ecd);
+    ecd[e] = { entity: e, key: k ? k : 'id', value: vl }; // addUniqueElements([{ entity: e, key: k ? k : 'id', value: vl }], ecd);
+    return ecd;
+  }
+  / '' { return {}; }
+
+listFieldDecl
+  = SPACE_WITHOUT_NEWLINE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* '&'? SPACE* lfd:listFieldDecl {
+    return addUniqueElements([f], lfd);
+  }
   / '' { return []; }
+
+// BEGIN_CURLY_BRACE = '{'
+// END_CURLY_BRACE = '}'
+// SCREEN = 'screen'
+// END_OF_ENTITYSCREEN = '} end of' SPACE_WITHOUT_NEWLINE* ENTITYSCREEN
+// END_OF_TRNSACTIONSCREEN = 'end of' SPACE_WITHOUT_NEWLINE* TRNSACTIONSCREEN
+// INDENT
+//   = &(i:[ \t]+ &{ return i.length > indent.length; }
+//       { console.log("indent", indentStack.length);indentStack.push(indent); indent = i.join(""); pos = offset; })
+// SAMEDENT
+//   = i:[ \t]* &{ return i.join("") === indent; }
+// DEDENT
+//   = '' { indent = indentStack.pop(); }
+
+// configScreenDecl
+//   = jd:comment? SPACE* 'config for' SPACE* SCREEN SPACE* eb:[A-z\-\(\)\n\r\t ]* SPACE* {
+//     return eb.join('');
+//   }
+
+//screens
+// entityScreenDecl
+//   = jd:comment? SPACE* ENTITYSCREEN SPACE_WITHOUT_NEWLINE* 'for' SPACE_WITHOUT_NEWLINE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* '{' SPACE* eb:configScreenDecl* SPACE* END_OF_ENTITYSCREEN SPACE* {
+//     console.log("entity screen config : ", eb.join(''));
+//     return { name: e, config: eb.join(''), javadoc: jd };
+//   }
+//   / ENTITYSCREEN SPACE_WITHOUT_NEWLINE* 'for' SPACE_WITHOUT_NEWLINE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* eb:[A-z\(\) ]* SPACE* END_OF_ENTITYSCREEN { return { name: e, body: eb, javadoc: '' }; }
+
+// transactionScreenDecl
+//   = jd:comment? SPACE* TRNSACTIONSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* eb:screenContentBody? SPACE* END_OF_TRNSACTIONSCREEN SPACE* {
+//     return { name: e, body: eb, javadoc: jd };
+//   }
+//   / TRNSACTIONSCREEN SPACE* 'for' SPACE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* eb:screenContentBody? SPACE* END_OF_TRNSACTIONSCREEN { return { name: e, body: eb, javadoc: '' }; }
+
+// screenContentBody
+//   = INDENT? BEGIN_CURLY_BRACE SPACE* fdl:screenChildrenDecl? SPACE_WITHOUT_NEWLINE* SAMEDENT? END_CURLY_BRACE { return fdl ? fdl : {}; }
+
+// screenChildrenDecl
+//   = SPACE* name:[A-z0-9 \(\)\.\-\=]+ SPACE_WITHOUT_NEWLINE* fdl:screenContentBody SPACE* {
+//     console.log("indented children", name, fdl);
+//      return { name: name, children: fdl }; 
+//   }
+//   / name:[A-z0-9 \(\)\.\-\=]+ SPACE* fdl:screenContentBody {
+//     console.log("children", name, fdl);
+//      return { name: name, children: fdl }; 
+//   }
   
 //Relationship
 relationDecl
@@ -697,6 +775,7 @@ ENTITY_NAME = head:[A-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 HASH_FIELD_NAME = head:[A-z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 HASH_ENTITY_NAME = head:[A-Z]tail:[A-Za-z0-9]+ { return `${head}${tail.join('')}`; }
+TEMPLATE_NAME = head:[a-zA-Z]tail:[A-z0-9\-]* { return `${head}${tail.join('')}`; }
 FIELD_LABEL = '(' SPACE* head:[a-zA-Z0-9]tail:[A-z0-9 ?:]* SPACE* ')' { return `${head}${tail.join('')}`; }
 SPACE = ['\n'|'\t'|'\r'|' '|\u2028|\u2029]
 SPACE_WITHOUT_NEWLINE = ['\t'|' '|\u2028|\u2029]
