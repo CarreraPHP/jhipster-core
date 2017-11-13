@@ -352,7 +352,7 @@ dtoHashSetDecl
   = jd:comment? SPACE* HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' bodies:hashSetBodies '}' SPACE*  {
     return { map: addPropertyToInstances('javadoc', jd, bodies) };
   }
-  / HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' SPACE* bodies:hashSetBodies SPACE* '}' { return { body: addPropertyToInstances('javadoc', '', bodies) }; }
+  / HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' SPACE* bodies:hashSetBodies SPACE* '}' { return { map: addPropertyToInstances('javadoc', '', bodies) }; }
 
 hashSetBodies
   = SPACE* hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
