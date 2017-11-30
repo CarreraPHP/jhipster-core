@@ -358,6 +358,7 @@ dtoHashSetDecl
     return { map: addPropertyToInstances('javadoc', jd, bodies) };
   }
   / HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' SPACE* bodies:hashSetBodies SPACE* '}' { return { map: addPropertyToInstances('javadoc', '', bodies) }; }
+  / HASHSET SPACE* 'in' SPACE* HASH_DTO SPACE* '{' SPACE* '}' { return { map: addPropertyToInstances('javadoc', '', []) }; }
 
 hashSetBodies
   = SPACE* hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
