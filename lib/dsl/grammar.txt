@@ -57,6 +57,8 @@
   const parsed = {
     applications: [],
     constants: {},
+    placeholders: {},
+    multilingual: [],
     entities: [],
     hashsets: [],
     screens: {
@@ -96,8 +98,16 @@ prog
     parsed.applications.push(applicationDeclaration);
     return parsed;
   }
+  / SPACE* ph:placeholderDecl SPACE* p:prog {
+    parsed.placeholders = ph;
+    return parsed;
+  }
   / SPACE* ed:entityDecl SPACE* p:prog {
     parsed.entities = addUniqueElements([ed], parsed.entities);
+    return parsed;
+  }
+  / SPACE* mld:multilingualDecl SPACE* p:prog {
+    parsed.multilingual = addUniqueElements([mld], parsed.multilingual);
     return parsed;
   }
   / SPACE* dhs:dtoHashSetDecl SPACE* p:prog {
@@ -323,15 +333,45 @@ booleanChoice
 constantDecl
   = name:CONSTANT_NAME SPACE* '=' SPACE* value:INTEGER { return { name: name, value: value }; }
 
+//Placeholders
+placeholderDecl
+  = jd:comment? SPACE* PLACEHOLDER SPACE* FOR SPACE* UI SPACE* phb:placeholderBody? SPACE*  {
+    phb.javadoc = jd;
+    return phb;
+  }
+  / PLACEHOLDER SPACE* FOR SPACE* UI SPACE* phb:placeholderBody? { return phb; }
+
+placeholderBody
+  = '{' SPACE* pdl:phDeclList SPACE* '}' { return pdl; }
+  / '' { return []; }
+
+phDeclList
+  = SPACE* f:PLACEHOLDER_NAME SPACE_WITHOUT_NEWLINE* l:PLACEHOLDER_PATH? SPACE_WITHOUT_NEWLINE* d:DEFAULT? SPACE_WITHOUT_NEWLINE* ','? SPACE* pdl:phDeclList SPACE* {
+    return addUniqueElements([{ name: f, path: l, isDefault: d ? true : false }], pdl );
+  }
+  / '' { return []; }
+
+//Multilingual
+multilingualDecl
+  = jd:comment? SPACE* MULTILINGUAL SPACE_WITHOUT_NEWLINE* FIELDS SPACE_WITHOUT_NEWLINE* IN SPACE_WITHOUT_NEWLINE* ENTITY SPACE* e:ENTITY_NAME SPACE* eb:entityBody? SPACE*  {
+    return { name: e, body: eb, javadoc: jd };
+  }
+  / MULTILINGUAL SPACE_WITHOUT_NEWLINE* FIELDS SPACE_WITHOUT_NEWLINE* IN SPACE_WITHOUT_NEWLINE* ENTITY SPACE* e:ENTITY_NAME SPACE* eb:entityBody? { return { name: e, body: eb, javadoc: '' }; }
+
 //Entities
 entityDecl
-  = jd:comment? SPACE* ENTITY SPACE* e:ENTITY_NAME SPACE* tableName:entityTableNameDecl? SPACE* eb:entityBody? SPACE*  {
-    return { name: e, tableName: tableName ? tableName: e, body: eb, javadoc: jd };
+  = jd:comment? SPACE* ENTITY SPACE* e:ENTITY_NAME SPACE* tableName:entityTableNameDecl? SPACE* pad:placeAtDecl? SPACE* eb:entityBody? SPACE*  {
+    return { name: e, tableName: tableName ? tableName: e, placeholder: pad, body: eb, javadoc: jd };
   }
   / ENTITY SPACE* e:ENTITY_NAME SPACE* eb:entityBody? { return { name: e, body: eb, javadoc: '' }; }
 
 entityTableNameDecl
   = '(' SPACE* name:[A-z0-9_-]+ SPACE* ')' { return name.join(''); }
+
+placeAtDecl
+  = SPACE_WITHOUT_NEWLINE* PLACE SPACE_WITHOUT_NEWLINE* AT SPACE_WITHOUT_NEWLINE* phn:PLACEHOLDER_NAME SPACE_WITHOUT_NEWLINE* { return phn; }
+  / PLACE SPACE_WITHOUT_NEWLINE* AT SPACE_WITHOUT_NEWLINE* phn:PLACEHOLDER_NAME { return phn; }
+  / '' { return ''; }
 
 entityBody
   = '{' SPACE* fdl:fieldDeclList SPACE* '}' { return fdl; }
@@ -732,6 +772,16 @@ ENTITIES = 'entities'
 // skipClient & skipServer are already defined
 TRUE = 'true'
 FALSE = 'false'
+//PLACEHOLDER constants
+PLACEHOLDER = 'placeholder'
+UI = 'ui'
+PLACE = 'place'
+AT = 'at'
+DEFAULT = 'default'
+//MULTILINGUAL constants
+MULTILINGUAL = 'multilingual'
+FIELDS = 'fields'
+IN = 'in'
 // Entity constants
 ENTITY = 'entity'
 RELATIONSHIP = 'relationship'
@@ -789,6 +839,9 @@ NEWLINE = ['\n'|'\t'|'\r']
 NO_CHARACTER_BEOFRE = ![A-z0-9 ]*
 FORWARD_SLASH = [/]
 
+//PLACEHOLDER & MULTILINGUAL
+PLACEHOLDER_NAME = head:[a-zA-Z]tail:[A-z0-9\-]* { return `${head}${tail.join('')}`; }
+PLACEHOLDER_PATH = '"' head:[a-zA-Z\.\/]tail:[A-z0-9\.\/\-]* '"' { return `${head}${tail.join('')}`; }
 
 //Component Constants
 ENTITYSCREEN = 'entityscreen'
