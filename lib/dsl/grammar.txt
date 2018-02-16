@@ -59,6 +59,9 @@
     constants: {},
     placeholders: {},
     multilingual: [],
+    approval: {},
+    autoapproval: {},
+    features: {},
     entities: [],
     hashsets: [],
     screens: {
@@ -128,6 +131,21 @@ prog
   }
   / SPACE* end:enumDecl SPACE* p:prog {
     parsed.enums = addUniqueElements([end], parsed.enums);
+    return parsed;
+  }
+  / SPACE* approval:approvalDecl SPACE* p:prog {
+    parsed.approval = approval;
+    // console.log("approxcxxcxcxxcxcxval", JSON.stringify(parsed, null, 4));
+    return parsed;
+  }
+  / SPACE* autoapproval:autoapprovalDecl SPACE* p:prog {
+    parsed.autoapproval = autoapproval;
+    // console.log("autoapproval", JSON.stringify(parsed, null, 4));
+    return parsed;
+  }
+  / SPACE* features:featureDecl SPACE* p:prog {
+    parsed.features = features;
+    // console.log("features", JSON.stringify(parsed, null, 4));
     return parsed;
   }
   / SPACE* dto:dtoDecl SPACE* p:prog {
@@ -562,6 +580,40 @@ subNoFluentMethod
   / ALL { return ['*']; }
   / e:ENTITY_NAME { return [e]; }
 
+//Approval
+approvalDecl
+  = APPROVE SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+   parsed.approval[decl[decl.length - 1]] =
+      parsed.approval[decl[decl.length - 1]] || { list: [], excluded: [] };
+    addUniqueElements(parsed.approval[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
+    if (ex) {
+    	addUniqueElements(parsed.approval[decl[decl.length - 1]].excluded, ex);
+    }
+    return parsed.approval;
+  }
+
+autoapprovalDecl
+  = AUTOAPPROVE SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+    parsed.autoapproval[decl[decl.length - 1]] =
+      parsed.autoapproval[decl[decl.length - 1]] || { list: [], excluded: [] };
+    addUniqueElements(parsed.autoapproval[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
+    if (ex) {
+    	addUniqueElements(parsed.autoapproval[decl[decl.length - 1]].excluded, ex);
+    }
+    return parsed.autoapproval;
+  }
+
+featureDecl
+  = FEATURE SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
+    parsed.features[decl[decl.length - 1]] =
+      parsed.features[decl[decl.length - 1]] || { list: [], excluded: [] };
+    addUniqueElements(parsed.features[decl[decl.length - 1]].list, decl.slice(0, decl.length - 1));
+    if (ex) {
+    	addUniqueElements(parsed.features[decl[decl.length - 1]].excluded, ex);
+    }
+    return parsed.features;
+  }
+
 // NEWLINE* NO_CHARACTER_BEOFRE
 // DTO NO_CHARACTER_BEOFRE 
 dtoDecl
@@ -847,3 +899,18 @@ PLACEHOLDER_PATH = '"' head:[a-zA-Z\.\/]tail:[A-z0-9\.\/\-]* '"' { return `${hea
 ENTITYSCREEN = 'entityscreen'
 TRNSACTIONSCREEN = 'transactionscreen'
 HASHSET = 'hashset'
+
+//Features & MakerChecker
+FEATURE = 'feature'
+APPROVE = 'approve'
+AUTOAPPROVE = 'autoapprove'
+MAKERCHECKER = 'makerchecker'
+IMPORT = 'import'
+EXPORT = 'export'
+BULKAPPROVAL = 'bulkapproval'
+BULKSUBMIT = 'bulksubmit'
+VIEWHISTORY = 'viewhistory'
+COLUMN = 'columnsearch'
+ADVANCESEARCH = 'advancesearch'
+ELASTICSEARCH = 'elasticsearch'
+
