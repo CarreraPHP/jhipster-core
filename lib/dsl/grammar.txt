@@ -71,6 +71,7 @@
     templates: {},
     combolist: {},
     relationships: [],
+    foreignKeys: [],
     enums: [],
     dto: {},
     pagination: {},
@@ -127,6 +128,10 @@ prog
   }
   / SPACE* rd:relationDecl SPACE* p:prog {
     parsed.relationships = flattenArray(addUniqueElements([rd], parsed.relationships));
+    return parsed;
+  }
+  / SPACE* fk:foreignKeyDecl SPACE* p:prog {
+    parsed.foreignKeys = flattenArray(addUniqueElements([fk], parsed.foreignKeys));
     return parsed;
   }
   / SPACE* end:enumDecl SPACE* p:prog {
@@ -421,6 +426,7 @@ dtoHashSetDecl
 hashSetBodies
   = SPACE* hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
   / hmb:hashSetBody SPACE* ','? SPACE* morehmb:hashSetBodies { return addUniqueElements([hmb], morehmb); }
+  / hmb:hashSetBody SPACE* ','? { return [hmb]; }
   / hmb:hashSetBody { return [hmb]; }
 
 hashSetBody
@@ -471,8 +477,13 @@ entityComboDecl
   / '' { return {}; }
 
 listFieldDecl
-  = SPACE_WITHOUT_NEWLINE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* '&'? SPACE* lfd:listFieldDecl {
+  = SPACE_WITHOUT_NEWLINE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* '&' SPACE_WITHOUT_NEWLINE* lfd:listFieldDecl {
+    // console.log("list field decl", f, lfd);
     return addUniqueElements([f], lfd);
+  }
+  / SPACE_WITHOUT_NEWLINE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* {
+    // console.log("list field decl", f);
+    return [f];
   }
   / '' { return []; }
 
@@ -546,6 +557,26 @@ relationshipSide
   }
   / e:ENTITY_NAME SPACE { return { name: e, injectedfield: null, javadoc: '' }; }
 
+//ForeignKeys
+foreignKeyDecl
+  = FOREIGNKEYS SPACE* IN SPACE* RELATIONSHIP SPACE* '{' SPACE* bodies:foreignKeyBodies SPACE* '}' {
+        return addUniqueElements([], bodies);
+    }
+
+foreignKeyBodies
+  = rb:foreignKeyBody ','? SPACE* morerb:foreignKeyBodies { return addUniqueElements([rb], morerb); }
+  / rb:foreignKeyBody ','? SPACE* { return [rb]; }
+  / rb:foreignKeyBody { return [rb]; }
+
+foreignKeyBody
+  = '[' SPACE* columns:listFieldDecl SPACE* ']' SPACE* FOR SPACE* to:ENTITY_NAME SPACE* IN SPACE* from:ENTITY_NAME SPACE*  {
+    // console.log("foriegn key body", columns, from, to);
+    return { from: from , to: to, columns: columns };
+  }
+  / '[' SPACE* columns:listFieldDecl SPACE* ']' SPACE* FOR SPACE* to:ENTITY_NAME SPACE* IN SPACE* from:ENTITY_NAME  {
+    // console.log("foriegn key body", columns, from, to);
+    return { from: from , to: to, columns: columns };
+  }
 
 //Enum
 enumDecl
@@ -913,4 +944,5 @@ VIEWHISTORY = 'viewhistory'
 COLUMN = 'columnsearch'
 ADVANCESEARCH = 'advancesearch'
 ELASTICSEARCH = 'elasticsearch'
+FOREIGNKEYS = 'foreignkeys'
 
