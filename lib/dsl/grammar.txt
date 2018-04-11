@@ -581,11 +581,14 @@ foreignKeyBody
 //Enum
 enumDecl
   = ENUM SPACE e:ENUMNAME SPACE* '{' SPACE* el:enumPropList SPACE* '}' {
+    console.log("ENUM", e, el);
     return { name: e, values: el };
   }
 
 enumPropList
-  = e:ENUMPROP SPACE* ',' SPACE* el:enumPropList { return addUniqueElements([e], el); }
+  = e:ENUMPROP2 SPACE* ',' SPACE* el:enumPropList { return addUniqueElements([e], el); }
+  / e:ENUMPROP SPACE* ',' SPACE* el:enumPropList { return addUniqueElements([e], el); }
+  / e:ENUMPROP2 { return [e]; }
   / e:ENUMPROP { return [e]; }
 
 exclusion
@@ -904,7 +907,10 @@ PATTERN = 'pattern'
 REGEX = pattern:[^\n\r/]* { return pattern.join(''); }
 
 ENUMNAME = head:[A-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
-ENUMPROP = underscore:[_]*head:[A-Z0-9]tail:[A-Z0-9_]* {
+ENUMPROP = underscore:[_]*head:[A-Z0-9]tail:[A-Z0-9_\&\ ]* {
+    return `${underscore.join('')}${head}${tail.join('')}`;
+  }
+ENUMPROP2 = beginQuote:[\']underscore:[_]*head:[A-Z0-9]tail:[A-Z0-9_\&\ ]*endQuote:[\'] {
     return `${underscore.join('')}${head}${tail.join('')}`;
   }
 CONSTANT_NAME = name:[A-Z_]+ { return name.join(''); }
@@ -945,4 +951,4 @@ COLUMN = 'columnsearch'
 ADVANCESEARCH = 'advancesearch'
 ELASTICSEARCH = 'elasticsearch'
 FOREIGNKEYS = 'foreignkeys'
-
+PRECISION = 'precision'
