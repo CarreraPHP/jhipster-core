@@ -907,10 +907,10 @@ PATTERN = 'pattern'
 REGEX = pattern:[^\n\r/]* { return pattern.join(''); }
 
 ENUMNAME = head:[A-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
-ENUMPROP = underscore:[_]*head:[A-Z0-9]tail:[A-Z0-9_\&\ ]* {
+ENUMPROP = underscore:[_]*head:[A-Z0-9]tail:[a-zA-Z0-9_\&\ ]* {
     return `${underscore.join('')}${head}${tail.join('')}`;
   }
-ENUMPROP2 = beginQuote:[\']underscore:[_]*head:[A-Z0-9]tail:[A-Z0-9_\&\ ]*endQuote:[\'] {
+ENUMPROP2 = beginQuote:[\']underscore:[_]*head:[A-Z0-9]tail:[a-zA-Z0-9_\&\ ]*endQuote:[\'] {
     return `${underscore.join('')}${head}${tail.join('')}`;
   }
 CONSTANT_NAME = name:[A-Z_]+ { return name.join(''); }
