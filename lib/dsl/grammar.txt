@@ -401,10 +401,19 @@ entityBody
   / '' { return []; }
 
 fieldDeclList
-  = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* cmmod:cmmod? SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList SPACE* {
-    return addUniqueElements([{ name: f, label: l ? l : f, type: t, cmmod: cmmod ? true : false, cmmodname: cmmod, validations: vl, javadoc: com || com2 }], fdl );
+  = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* p:precisionDecl? SPACE_WITHOUT_NEWLINE* cmmod:cmmod? SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList SPACE* {
+    return addUniqueElements([{ name: f, label: l ? l : f, type: t, precision: p, cmmod: cmmod ? true : false, cmmodname: cmmod, validations: vl, javadoc: com || com2 }], fdl );
   }
   / '' { return []; }
+
+precisionDecl 
+  = PRECISION '(' m:INTEGER ','? s:INTEGER? ')' {
+    return { max: m, scale: s ? s : 0 };
+  }
+  / PRECISION '(' m:INTEGER ')' {
+    return { max: m, scale: 0 };
+  }
+
 
 cmmod 
   = 'commonmodule' SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL {
@@ -581,7 +590,7 @@ foreignKeyBody
 //Enum
 enumDecl
   = ENUM SPACE e:ENUMNAME SPACE* '{' SPACE* el:enumPropList SPACE* '}' {
-    console.log("ENUM", e, el);
+    // console.log("ENUM", e, el);
     return { name: e, values: el };
   }
 
