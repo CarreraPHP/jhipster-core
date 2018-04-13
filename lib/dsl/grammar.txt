@@ -402,6 +402,7 @@ entityBody
 
 fieldDeclList
   = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* p:precisionDecl? SPACE_WITHOUT_NEWLINE* cmmod:cmmod? SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList SPACE* {
+    console.log("field label ", l);
     return addUniqueElements([{ name: f, label: l ? l : f, type: t, precision: p, cmmod: cmmod ? true : false, cmmodname: cmmod, validations: vl, javadoc: com || com2 }], fdl );
   }
   / '' { return []; }
@@ -930,7 +931,11 @@ FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 HASH_FIELD_NAME = head:[A-z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 HASH_ENTITY_NAME = head:[A-Z]tail:[A-Za-z0-9]+ { return `${head}${tail.join('')}`; }
 TEMPLATE_NAME = head:[a-zA-Z]tail:[A-z0-9\-]* { return `${head}${tail.join('')}`; }
-FIELD_LABEL = '(' SPACE* head:[a-zA-Z0-9]tail:[A-z0-9 ?:]* SPACE* ')' { return `${head}${tail.join('')}`; }
+LABEL_WITH_SYMBOL = s:[a-zA-Z0-9/?\(\)%\- ] { return s; }
+FIELD_LABEL 
+  = beginBracket:[\(]beginQuote:[`] head:LABEL_WITH_SYMBOL tail:LABEL_WITH_SYMBOL* endQuote:[`]endBracket:[\)] { return `${head}${tail.join('')}`; }
+  / '(`' SPACE* head:LABEL_WITH_SYMBOL tail:LABEL_WITH_SYMBOL* SPACE* '`)' { return `${head}${tail.join('')}`; }
+  / '(' SPACE* head:[a-zA-Z0-9]tail:[a-zA-Z0-9 ]* SPACE* ')' { return `${head}${tail.join('')}`; }
 SPACE = ['\n'|'\t'|'\r'|' '|\u2028|\u2029]
 SPACE_WITHOUT_NEWLINE = ['\t'|' '|\u2028|\u2029]
 NEWLINE = ['\n'|'\t'|'\r']
