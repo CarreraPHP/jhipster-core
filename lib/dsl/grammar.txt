@@ -402,7 +402,7 @@ entityBody
 
 fieldDeclList
   = SPACE* com:comment? SPACE* f:FIELD_NAME SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* t:type SPACE_WITHOUT_NEWLINE* p:precisionDecl? SPACE_WITHOUT_NEWLINE* cmmod:cmmod? SPACE_WITHOUT_NEWLINE* vl:validationList? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* fdl:fieldDeclList SPACE* {
-    console.log("field label ", l);
+    // console.log("field label ", l);
     return addUniqueElements([{ name: f, label: l ? l : f, type: t, precision: p, cmmod: cmmod ? true : false, cmmodname: cmmod, validations: vl, javadoc: com || com2 }], fdl );
   }
   / '' { return []; }
@@ -579,14 +579,25 @@ foreignKeyBodies
   / rb:foreignKeyBody { return [rb]; }
 
 foreignKeyBody
-  = '[' SPACE* columns:listFieldDecl SPACE* ']' SPACE* FOR SPACE* to:ENTITY_NAME SPACE* IN SPACE* from:ENTITY_NAME SPACE*  {
+  = '[' SPACE* columns:foreignFieldDecl SPACE* ']' SPACE* FOR SPACE* to:ENTITY_NAME SPACE* IN SPACE* from:ENTITY_NAME SPACE*  {
     // console.log("foriegn key body", columns, from, to);
     return { from: from , to: to, columns: columns };
   }
-  / '[' SPACE* columns:listFieldDecl SPACE* ']' SPACE* FOR SPACE* to:ENTITY_NAME SPACE* IN SPACE* from:ENTITY_NAME  {
+  / '[' SPACE* columns:foreignFieldDecl SPACE* ']' SPACE* FOR SPACE* to:ENTITY_NAME SPACE* IN SPACE* from:ENTITY_NAME  {
     // console.log("foriegn key body", columns, from, to);
     return { from: from , to: to, columns: columns };
   }
+
+foreignFieldDecl
+  = SPACE_WITHOUT_NEWLINE* f:FIELD_NAME l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* '&' SPACE_WITHOUT_NEWLINE* lfd:foreignFieldDecl {
+    // console.log("list field decl", f, lfd);
+    return addUniqueElements([{name: f, label: l ? l : ''}], lfd);
+  }
+  / SPACE_WITHOUT_NEWLINE* f:FIELD_NAME l:FIELD_LABEL? SPACE_WITHOUT_NEWLINE* {
+    // console.log("list field decl", f);
+    return [{name: f, label: l ? l : ''}];
+  }
+  / '' { return []; }
 
 //Enum
 enumDecl
