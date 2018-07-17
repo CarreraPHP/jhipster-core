@@ -407,16 +407,18 @@ fieldDeclList
   }
   / '' { return []; }
 
-precisionDecl 
+precisionDecl
   = PRECISION '(' m:INTEGER ','? s:INTEGER? ')' {
+    // console.log("Precision declaration, ", m, s);
     return { max: m, scale: s ? s : 0 };
   }
   / PRECISION '(' m:INTEGER ')' {
+    // console.log("Precision declaration, ", m);
     return { max: m, scale: 0 };
   }
 
 
-cmmod 
+cmmod
   = 'commonmodule' SPACE_WITHOUT_NEWLINE* l:FIELD_LABEL {
     return l;
   }
@@ -462,12 +464,35 @@ templateDecl
   / TEMPLATE SPACE* '{' templates:entityTemplateDecl '}' SPACE* { return templates; }
 
 entityTemplateDecl
-  = SPACE* com:comment? SPACE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* t:TEMPLATE_NAME SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* etd:entityTemplateDecl {
-    etd[e] = { entity: e, template: t, javadoc: com || com2 }
+  = SPACE* com:comment? SPACE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* t:TEMPLATE_NAME SPACE_WITHOUT_NEWLINE* d:templateDetailDecl? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* etd:entityTemplateDecl {
+    etd[e] = { entity: e, template: t, templatedetail: d, javadoc: com || com2 }
+    // console.log("template for entity", etd[e]);
     return etd;
   }
   / '' { return {}; }
 
+templateDetailDecl
+  = '(' SPACE_WITHOUT_NEWLINE* f:templateFileDecl? ','? SPACE_WITHOUT_NEWLINE* g:templateGroupDecl? ','? SPACE_WITHOUT_NEWLINE* p:templateProjectDecl? ')' {
+    return { filename: f, domaingroup: g, uiproject: p }
+  }
+  / '' {
+    return { filename: '', domaingroup: '', uiproject: '' };
+  }
+
+templateFileDecl
+  = 'name=' f:ENTITY_NAME {
+    return f || '';
+  }
+
+templateGroupDecl
+  = 'group=' g:FIELD_NAME {
+    return g || '';
+  }
+
+templateProjectDecl
+  = 'project=' p:PLACEHOLDER_NAME {
+    return p || '';
+  }
 
 LIST_BEGIN = '['
 LIST_END = ']'
@@ -477,7 +502,7 @@ COMBO = 'combo'
 comboListDecl
   = jd:comment? SPACE* LIST SPACE* FOR SPACE* COMBO SPACE* '{' combo:entityComboDecl '}' SPACE* { return combo; }
   / TEMPLATE SPACE* '{' combo:entityComboDecl '}' SPACE* { return combo; }
-  
+
 entityComboDecl
   = SPACE* e:ENTITY_NAME SPACE* LIST_BEGIN SPACE_WITHOUT_NEWLINE* k:FIELD_NAME? SPACE_WITHOUT_NEWLINE* '=>' SPACE_WITHOUT_NEWLINE* vl:listFieldDecl SPACE_WITHOUT_NEWLINE* LIST_END SPACE* ','? SPACE* ecd:entityComboDecl {
     // console.log("value fields in list", k, vl, ecd);
@@ -535,13 +560,13 @@ listFieldDecl
 // screenChildrenDecl
 //   = SPACE* name:[A-z0-9 \(\)\.\-\=]+ SPACE_WITHOUT_NEWLINE* fdl:screenContentBody SPACE* {
 //     console.log("indented children", name, fdl);
-//      return { name: name, children: fdl }; 
+//      return { name: name, children: fdl };
 //   }
 //   / name:[A-z0-9 \(\)\.\-\=]+ SPACE* fdl:screenContentBody {
 //     console.log("children", name, fdl);
-//      return { name: name, children: fdl }; 
+//      return { name: name, children: fdl };
 //   }
-  
+
 //Relationship
 relationDecl
   = RELATIONSHIP SPACE rt:relationshipType SPACE* '{' SPACE* bodies:relationshipBodies SPACE* '}' {
@@ -670,7 +695,7 @@ featureDecl
   }
 
 // NEWLINE* NO_CHARACTER_BEOFRE
-// DTO NO_CHARACTER_BEOFRE 
+// DTO NO_CHARACTER_BEOFRE
 dtoDecl
   = DTO SPACE+ decl:entityList SPACE* ex:exclusion? SPACE*  {
     parsed.dto[decl[decl.length - 1]] = parsed.dto[decl[decl.length - 1]] || { list: [], excluded: [] };
@@ -943,7 +968,7 @@ HASH_FIELD_NAME = head:[A-z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 HASH_ENTITY_NAME = head:[A-Z]tail:[A-Za-z0-9]+ { return `${head}${tail.join('')}`; }
 TEMPLATE_NAME = head:[a-zA-Z]tail:[A-z0-9\-]* { return `${head}${tail.join('')}`; }
 LABEL_WITH_SYMBOL = s:[a-zA-Z0-9/?\(\)%\- ] { return s; }
-FIELD_LABEL 
+FIELD_LABEL
   = beginBracket:[\(]beginQuote:[`] head:LABEL_WITH_SYMBOL tail:LABEL_WITH_SYMBOL* endQuote:[`]endBracket:[\)] { return `${head}${tail.join('')}`; }
   / '(`' SPACE* head:LABEL_WITH_SYMBOL tail:LABEL_WITH_SYMBOL* SPACE* '`)' { return `${head}${tail.join('')}`; }
   / '(' SPACE* head:[a-zA-Z0-9]tail:[a-zA-Z0-9 ]* SPACE* ')' { return `${head}${tail.join('')}`; }
