@@ -465,32 +465,44 @@ templateDecl
 
 entityTemplateDecl
   = SPACE* com:comment? SPACE* e:ENTITY_NAME SPACE_WITHOUT_NEWLINE* t:TEMPLATE_NAME SPACE_WITHOUT_NEWLINE* d:templateDetailDecl? SPACE_WITHOUT_NEWLINE* com2:comment? SPACE_WITHOUT_NEWLINE* ','? SPACE* etd:entityTemplateDecl {
-    etd[e] = { entity: e, template: t, templatedetail: d, javadoc: com || com2 }
-    // console.log("template for entity", etd[e]);
+    // console.log("\n==============\ntemplate for entity : ", e, t, d, "\n==============\n");
+    etd[e] = { entity: e, template: t, templatedetail: d, javadoc: com || com2 };
     return etd;
   }
   / '' { return {}; }
 
 templateDetailDecl
-  = '(' SPACE_WITHOUT_NEWLINE* f:templateFileDecl? ','? SPACE_WITHOUT_NEWLINE* g:templateGroupDecl? ','? SPACE_WITHOUT_NEWLINE* p:templateProjectDecl? ')' {
-    return { filename: f, domaingroup: g, uiproject: p }
+  = '(' SPACE_WITHOUT_NEWLINE* f:templateFileDecl? ','? SPACE_WITHOUT_NEWLINE* g:templateGroupDecl? ','? SPACE_WITHOUT_NEWLINE* p:templateProjectDecl? ','? SPACE_WITHOUT_NEWLINE* c:isChildDecl? ')' {
+    // console.log("Template Detail declaration : ", f, g, p);
+    return { filename: f, domaingroup: g, uiproject: p, isChild: !!c }
   }
   / '' {
-    return { filename: '', domaingroup: '', uiproject: '' };
+    return { filename: '', domaingroup: '', uiproject: '', isChild: false };
   }
 
+TEMPLATE_ENTITY_NAME = head:[A-Z]tail:[A-Za-z0-9]* { return `${head}${tail.join('')}`; }
+TEMPLATE_FIELD_NAME = tail:[A-Za-z0-9\-]* { return `${tail.join('')}`; }
+
 templateFileDecl
-  = 'name=' f:ENTITY_NAME {
+  = 'name=`' f:TEMPLATE_ENTITY_NAME? '`' {
+    // console.log("template file name", f);
     return f || '';
   }
 
 templateGroupDecl
-  = 'group=' g:FIELD_NAME {
+  = 'group=`' g:TEMPLATE_FIELD_NAME? '`' {
+    // console.log("group name", g);
     return g || '';
   }
 
 templateProjectDecl
-  = 'project=' p:PLACEHOLDER_NAME {
+  = 'project=`' p:TEMPLATE_FIELD_NAME? '`' {
+    // console.log("project name", p);
+    return p || '';
+  }
+
+isChildDecl
+  = 'isChild=' p:booleanChoice {
     return p || '';
   }
 
